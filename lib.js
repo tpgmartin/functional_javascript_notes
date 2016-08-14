@@ -1,3 +1,5 @@
+// #Chapter 1
+
 function lessOrEqual(x, y) {
   return x <= y;
 }
@@ -34,21 +36,28 @@ function lyricSegment(n) {
     .push(n + " bottles of beer on the wall")
     .push(n + " bottles of beer")
     .push("Take one down, pass it around")
-    .tap(function(lyrics) {
-      if (n>1)
+    .tap(function (lyrics) {
+      if (n > 1)
         lyrics.push((n - 1) + " bottles of beer on the wall.");
       else
         lyrics.push("No more bottles of beer on the wall!");
     })
-  .value();
+    .value();
 }
 
-function song(start, end, lyricGen) { 
-  return _.reduce(_.range(start,end,-1),
-    function(acc,n) {
+function song(start, end, lyricGen) {
+  return _.reduce(_.range(start, end, -1),
+    function (acc, n) {
       return acc.concat(lyricGen(n));
     }, []);
-  }
+}
+
+// #Chapter 2
+
+function average(array) {
+  var sum = _.reduce(array, function (a, b) { return a + b });
+  return sum / _.size(array);
+}
 
 // Application functions
 // * Map
@@ -79,11 +88,11 @@ function butLast(coll) {
   return _.toArray(coll).slice(0, -1);
 }
 
-function interpose (inter, coll) {
-  return butLast(mapcat(function(e) {
+function interpose(inter, coll) {
+  return butLast(mapcat(function (e) {
     return construct(e, [inter]);
   },
-  coll));
+    coll));
 }
 // Example call
 // interpose(",", [1,2,3]);
@@ -105,7 +114,7 @@ function interpose (inter, coll) {
 
 //  Stand in for SQL SELECT
 function project(table, keys) {
-  return _.map(table, function(obj) {
+  return _.map(table, function (obj) {
     return _.pick.apply(null, construct(obj, keys));
   });
 };
@@ -115,7 +124,7 @@ function rename(obj, newNames) {
   // reconstruct object using Underscore reduce
   // traverse over key/value pairs that preserves
   // "mappiness" of the accumulator
-  return _.reduce(newNames, function(o, nu, old) {
+  return _.reduce(newNames, function (o, nu, old) {
     if (_.has(obj, old)) {
       o[nu] = obj[old];
       return o;
@@ -123,33 +132,33 @@ function rename(obj, newNames) {
     else
       return o;
   },
-  _.omit.apply(null, construct(obj, _.keys(newNames))));
+    _.omit.apply(null, construct(obj, _.keys(newNames))));
 };
 
 function as(table, newNames) {
-  return _.map(table, function(obj) {
+  return _.map(table, function (obj) {
     return rename(obj, newNames);
   });
 };
 
 // WHERE 
 function restrict(table, pred) {
-  return _.reduce(table, function(newTable, obj) {
+  return _.reduce(table, function (newTable, obj) {
     if (truthy(pred(obj)))
       return newTable;
-  else
-    return _.without(newTable, obj);
-  }, table); 
+    else
+      return _.without(newTable, obj);
+  }, table);
 };
 
 // Example chain
 restrict(
   project(
-    as(library, {ed: 'edition'}),
+    as(library, { ed: 'edition' }),
     ['title', 'isbn', 'edition']),
-  function(book) {
-    return book.edition > 1; 
-});
+  function (book) {
+    return book.edition > 1;
+  });
 
 
 // Equivalent SQL statement
@@ -157,3 +166,108 @@ restrict(
 //  SELECT ed AS edition FROM library
 // ) EDS
 // WHERE edition > 1;
+
+// #Chapter 3
+// ##Dynamic scope
+
+var globals = {};
+
+function makeBindFun(resolver) {
+  return function (k, v) {
+    var stack = globals[k] || [];
+    globals[k] = resolver(stack, v);
+    return globals;
+  };
+}
+
+var stackBinder = makeBindFun(function (stack, v) {
+  stack.push(v);
+  return stack;
+});
+
+var stackUnbinder = makeBindFun(function (stack) {
+  stack.pop();
+  return stack;
+});
+
+var dynamicLookup = function (k) {
+  var slot = globals[k] || [];
+  return _.last(slot);
+};
+
+// In a dynamic scoping scheme, the value at the top of a stack in a binding is
+// the current value. To retrieve the previous binding is as simple as 
+// unbinding by popping the stack
+
+function globalThis() { return this; }
+
+globalThis();
+//=> some global object, probably Window
+
+globalThis.call('barnabas');
+//=> 'barnabas'
+
+globalThis.apply('orsulak', [])
+//=> 'orsulak'
+
+// _.bind lock the `this` reference from changing
+
+var nopeThis = _.bind(globalThis, 'nope');
+
+nopeThis.call('way');
+// => 'nope';
+
+// Use _.bindAll
+var target = {
+  name: 'the right value',
+  aux: function () { return this.name; },
+  act: function () { return this.aux(); }
+};
+
+target.act.call('wat');
+// TypeError: Object [object String] has no method 'aux'
+
+_.bindAll(target, 'aux', 'act');
+
+target.act.call('wat');
+//=> 'the right value'
+
+// ##Closures
+
+// Want to capture closed variables while maintaining access
+function createWeirdScaleFunction(FACTOR) {
+  return function (v) {
+    this['FACTOR'] = FACTOR;
+    var captures = this;
+    return _.map(v, _.bind(function (n) {
+      return (n * this['FACTOR']);
+    }, captures));
+  };
+}
+var scale10 = createWeirdScaleFunction(10);
+
+scale10.call({}, [5, 6, 7]);
+//=> [50, 60, 70];
+
+// average defined above
+function averageDamp (FUN) {
+  return function (n) {
+    return average([n, FUN(n)]);
+  }
+}
+
+// ##Shadowing
+// Shadowed variables are also carried along with closures
+
+// ##Using Closures
+// The PRED predicate is captured by the returned function
+function complement(PRED) {
+  return function() {
+    return !PRED.apply(null, _.toArray(arguments));
+  };
+}
+// Want to avoid this pattern using IIFE
+// cannot access private variables within the scope
+
+// ##Closures as an Abstraction
+// Create a usable function based on configuration captured at creation
