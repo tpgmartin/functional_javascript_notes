@@ -250,7 +250,7 @@ scale10.call({}, [5, 6, 7]);
 //=> [50, 60, 70];
 
 // average defined above
-function averageDamp (FUN) {
+function averageDamp(FUN) {
   return function (n) {
     return average([n, FUN(n)]);
   }
@@ -262,7 +262,7 @@ function averageDamp (FUN) {
 // ##Using Closures
 // The PRED predicate is captured by the returned function
 function complement(PRED) {
-  return function() {
+  return function () {
     return !PRED.apply(null, _.toArray(arguments));
   };
 }
@@ -271,3 +271,95 @@ function complement(PRED) {
 
 // ##Closures as an Abstraction
 // Create a usable function based on configuration captured at creation
+
+// #Chapter 4
+
+// A higher-order function adheres to a very specific definition 
+// * Takes a function as an argument
+// * Returns a function as a result
+
+// Use _.max on object by passing function that generates a numeric value
+
+// _.identity(value) 
+// Returns the same value that is used as the argument. In math: f(x) = x
+
+
+function best(fun, coll) {
+  return _.reduce(coll, function (x, y) {
+    returnfun(x, y) ? x : y
+  });
+}
+
+best(function (x, y) { return x > y }, [1, 2, 3, 4, 5]);
+//=> 5
+
+// ##More about passing functions
+
+// Use functions, not values
+// That is, while a func‐ tion that repeats a value some number of times is 
+// good, a function that repeats a com‐ putation some number of times is better 
+
+function repeatedly(times, fun) {
+  return _.map(_.range(times), fun);
+}
+
+repeatedly(3, function () {
+  return Math.floor((Math.random() * 10) + 1);
+});
+
+//=> [1, 3, 8]
+
+// Defining repeatedly ablove still allows us to pass in a fixed value,
+// just would have to be wrapped in a function
+
+// Can make changes separate from input, generally this is not goof practice
+
+// Choose not to pass in fixed calue for "times" above
+function iterateUntil(fun, check, init) {
+  var ret = [];
+  var result = fun(init);
+  while (check(result)) {
+    ret.push(result); result = fun(result);
+  }
+  return ret;
+};
+
+iterateUntil(function (n) { return n + n }, function (n) { return n <= 1024 }, 1);
+//=> [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+
+// iterateUntil is a "feed-foward" function: the result of some call to the 
+// passed function is fed into the next call of the function as its argument
+
+// ##Functions that return other Functions
+
+// Denote a function returing a constant as "always"
+function always(VALUE) {
+  return function () {
+    return VALUE;
+  };
+};
+
+// important point about closures
+var f = always(function () { });
+f() === f();
+//=> true
+
+var g = always(function () { });
+f() === g();
+//=> false
+
+// Use with repeatedly
+repeatedly(3, always("Hello"));
+//=> ["Hello","Hello","Hello"]
+
+// invoker performs some action based on the value of the original call
+
+function invoker(NAME, METHOD) {
+  return function (target /* args ... */) {
+    if (!existy(target)) fail("Must provide a target"); var targetMethod = target[NAME];
+    var args = _.rest(arguments);
+    return doWhen((existy(targetMethod) && METHOD === targetMethod), function () {
+      return targetMethod.apply(target, args);
+    });
+  };
+};
