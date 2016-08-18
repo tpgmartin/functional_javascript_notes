@@ -363,3 +363,63 @@ function invoker(NAME, METHOD) {
     });
   };
 };
+
+// Create functions that return another function in order to configure the 
+// behaviour of the returned function
+
+// Closures with internal values do not have "referential transparency" i.e.
+// cannot simply swap out a function call with its expected value, as the value
+// that is reuturns is dependent on the number of times it was previously 
+// called (see chapter 7 for more discussion)
+
+// Guard against fnull
+function fnull(fun /*, defaults */) {
+  var defaults = _.rest(arguments)
+
+  return function (/* args */) {
+    var args = _.map(arguments, function (e, i) {
+      // assign defaults lazily
+      return existy(e) ? e : defaults[i]
+    })
+
+    return fun.apply(null, args)
+  }
+}
+
+// With Objects
+function defaults(d) {
+  return function (o, k) {
+    var val = fnull(_.identity, d[k]);
+    return o && val(o[k]);
+  };
+}
+
+// Using fnull in the body of the defaults function is illustrative of the 
+// propensity in functional style to build higher-level parts from lower-level 
+// functions.
+
+// Object validators
+// N.B. predicates: functions that return true or false
+function checker(/* validators */) {
+  var validators = _.toArray(arguments);
+  return function (obj) {
+    return _.reduce(validators, function (errs, check) {
+      if (check(obj)) return errs
+      else
+        return _.chain(errs).push(check.message).value();
+    }, []);
+  };
+}
+
+// Offload manually adding "message" property to object
+function validator(message, fun) {
+  var f = function (/* args */) {
+    return fun.apply(fun, arguments);
+  };
+
+  f['message'] = message;
+  return f;
+}
+
+// example
+var gonnaFail = checker(validator("ZOMG!", always(false)));
