@@ -279,6 +279,8 @@ function complement(PRED) {
 // * Returns a function as a result
 
 // Use _.max on object by passing function that generates a numeric value
+// To be truely functional, in the case of _.max comparison should be a 
+// performed by a function itself 
 
 // _.identity(value) 
 // Returns the same value that is used as the argument. In math: f(x) = x
@@ -423,3 +425,5 @@ function validator(message, fun) {
 
 // example
 var gonnaFail = checker(validator("ZOMG!", always(false)));
+
+// #Chapter 5
