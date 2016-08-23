@@ -427,3 +427,60 @@ function validator(message, fun) {
 var gonnaFail = checker(validator("ZOMG!", always(false)));
 
 // #Chapter 5
+
+// dispatch allows several different methods to be used together e.g.
+// var rev = dispatch(invoker('reverse', Array.prototype.reverse), stringReverse);
+// rev([1,2,3]);
+//=> [3, 2, 1]
+// rev("abc");
+//=> "cba"
+
+function dispatch(/* funs */) {
+  var funs = _.toArray(arguments);
+  var size = funs.length;
+
+  return function (target /*, args */) {
+    var ret = undefined;
+    var args = _.rest(arguments);
+
+    for (var funIndex = 0; funIndex < size; funIndex++) {
+      var fun = funs[funIndex];
+      ret = fun.apply(fun, construct(target, args));
+
+      if (existy(ret)) return ret;
+    }
+
+    return ret;
+  };
+}
+
+// from chapter 2, consttuct is defined as
+function construct (head, tail) {
+  return cat([head], _.toArray(tail));
+}
+
+// dispatch demonstrates pattern common to polymorphic JavaScript functions
+// 
+// 1. Make sure the target exists
+// 2. Check if there is a native version and use it if so
+// 3. If not, then do some specific tasks implementing the behaviour:
+//    * Do type-specific tasks, if applicable
+//    * Do argument-specific tasks, if applicable
+//    * Do argument count-specific tasks, if applicable
+
+// see example of _.map
+
+// with invoker and dispatch, can delegate down to concrete implementations
+// rather than using a single function that groups type and existance checks
+// via `if-then-else`
+
+// dispatch with default fallback
+// var sillyReverse = dispatch(rev, always(42))
+
+// can use this pattern to avoid using a switch statement
+
+// mutation as a low-level operation
+
+// ##Currying
+// A curried function is one that returns a new function for every logical
+// argument that is takes
